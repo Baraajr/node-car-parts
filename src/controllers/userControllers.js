@@ -199,6 +199,10 @@ exports.updateLoggedUserPassword = catchAsync(async (req, res, next) => {
 
 // change the active field to false
 exports.deleteLoggedUserData = catchAsync(async (req, res, next) => {
+  if (req.user.role === 'admin')
+    return next(new AppError('Admin can not delete himself', 400));
+  if (req.user.role === 'manager')
+    return next(new AppError('Seller can not delete himself', 400));
   await User.findByIdAndUpdate(req.user._id, { active: false });
 
   res.status(204).json({ status: 'Success' });
