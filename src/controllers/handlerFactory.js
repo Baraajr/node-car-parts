@@ -2,6 +2,7 @@ const slugify = require('slugify');
 const ApiFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+// require('../utils/cache');
 
 exports.getAll = (model, populateOptions, modelName = '') =>
   catchAsync(async (req, res) => {
@@ -26,7 +27,12 @@ exports.getAll = (model, populateOptions, modelName = '') =>
         path: populateOptions,
         select: 'name',
       });
-    const documents = await mongooseQuery;
+    let documents;
+    if (features.mongooseQuery.mongooseCollection.modelName === 'Product') {
+      documents = await features.mongooseQuery;
+    } else {
+      documents = await features.mongooseQuery;
+    }
 
     // if (documents.length === 0) {
     //   return res.status(404).json({
@@ -36,6 +42,7 @@ exports.getAll = (model, populateOptions, modelName = '') =>
     // }
 
     res.status(200).json({
+      port: process.env.PORT,
       status: 'success',
       results: documents.length,
       paginationResult,

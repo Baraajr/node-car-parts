@@ -4,6 +4,7 @@ const { check, body } = require('express-validator');
 const validatorMiddleware = require('../../middlewares/validatorMiddleware');
 const Category = require('../../models/categoryModel');
 const SubCategory = require('../../models/subCategoryModel');
+const Product = require('../../models/productModel');
 const AppError = require('../appError');
 
 exports.createProductValidator = [
@@ -11,10 +12,13 @@ exports.createProductValidator = [
     .isLength({ min: 3 })
     .withMessage('must be at least 3 chars')
     .notEmpty()
-    .withMessage('Product required')
-    .custom((val, { req }) => {
+    .withMessage('Product name is required')
+    .custom(async (val, { req }) => {
       req.body.slug = slugify(val);
-      return true;
+      const product = await Product.findOne({ name: val });
+      if (product) {
+        throw new AppError('Product name must be unique', 400);
+      }
     }),
   check('description')
     .notEmpty()
@@ -52,16 +56,16 @@ exports.createProductValidator = [
     .optional()
     .isArray()
     .withMessage('availableColors should be array of string'),
-  //check('imageCover').notEmpty().withMessage('Product imageCover is required'),TODO:
+  check('imageCover').notEmpty().withMessage('Product imageCover is required'),
   check('images')
     .optional()
     .isArray()
     .withMessage('images should be array of string'),
   check('category')
     .notEmpty()
-    .withMessage('Product must be belong to a category')
+    .withMessage('Product must belong to a category')
     .isMongoId()
-    .withMessage('Invalid ID formate')
+    .withMessage('Invalid ID format')
     .custom((categoryId) =>
       Category.findById(categoryId).then((category) => {
         if (!category) {

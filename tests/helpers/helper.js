@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const Product = require('../../models/productModel');
-const User = require('../../models/userModel');
-const Category = require('../../models/categoryModel');
+const Product = require('../../src/models/productModel');
+const User = require('../../src/models/userModel');
+const Category = require('../../src/models/categoryModel');
 
 exports.createAdminUser = async () => {
   const admin = await User.create({
@@ -47,6 +47,7 @@ exports.createProduct = async (categoryId) => {
     category: categoryId,
     color: 'Test Color',
     quantity: 10,
+    imageCover: 'test-cover.jpg',
   });
 
   return product;

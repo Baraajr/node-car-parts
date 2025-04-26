@@ -1,7 +1,7 @@
 const supertest = require('supertest');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
-const app = require('../../app');
+const app = require('../../src/app');
 const {
   CreateCategory,
   createProduct,
@@ -28,6 +28,14 @@ beforeAll(async () => {
   adminToken = createJWTToken(adminUser._id); // Generate token after user is created
   const regularUser = await createReqularUser(); // Await user creation
   userToken = createJWTToken(regularUser._id); // Generate token after user is created
+
+  // create category
+  const category = await CreateCategory();
+  categoryId = category._id;
+});
+
+afterEach(async () => {
+  await deleteAllProducts();
 });
 
 afterAll(async () => {
@@ -36,25 +44,10 @@ afterAll(async () => {
   await mongoServer.stop();
 });
 
-beforeEach(async () => {
-  // create category
-  const category = await CreateCategory();
-  categoryId = category._id;
-
-  // create  a new product to test the get specific route
-  const product = await createProduct(category._id); // Set up new product
-  productId = product._id;
-});
-
-afterEach(async () => {
-  await deleteAllProducts();
-  await deleteAllCategories();
-});
-
 describe('Testing Products routes ', () => {
   describe('/api/v1/products', () => {
     describe('GET /api/v1/products ', () => {
-      test('should return an array of products', async () => {
+      test.only('should return an array of products', async () => {
         const response = await supertest(app).get('/api/v1/products');
         expect(response.status).toEqual(200);
         expect(Array.isArray(response.body.data.documents)).toBeTruthy();
@@ -63,7 +56,7 @@ describe('Testing Products routes ', () => {
 
     describe('POST /api/v1/products', () => {
       describe('without a login token', () => {
-        test('should return 401 Unauthorized', async () => {
+        test.only('should return 401 Unauthorized', async () => {
           const response = await supertest(app).post('/api/v1/products').send({
             name: 'Test Product 2',
             price: 200,
@@ -80,7 +73,7 @@ describe('Testing Products routes ', () => {
       });
 
       describe('with regular user token', () => {
-        test('Should returns 403 Forbidden', async () => {
+        test.only('Should returns 403 Forbidden', async () => {
           const response = await supertest(app)
             .post('/api/v1/products')
             .set('Authorization', `Bearer ${userToken}`)
@@ -102,7 +95,7 @@ describe('Testing Products routes ', () => {
 
       describe('with Admin token', () => {
         describe('with all required fields', () => {
-          test('should Return 201 Created', async () => {
+          test.only('should Return 201 Created', async () => {
             const response = await supertest(app)
               .post('/api/v1/products')
               .set('Authorization', `Bearer ${adminToken}`)
@@ -113,9 +106,9 @@ describe('Testing Products routes ', () => {
                 category: categoryId,
                 color: 'Test Color 2',
                 quantity: 5,
+                imageCover: 'Test Image Cover',
               });
 
-            // console.log(response.body);
             expect(response.status).toEqual(201);
             expect(response.body.data.doc).toHaveProperty(
               'name',
@@ -124,8 +117,83 @@ describe('Testing Products routes ', () => {
             expect(response.body.data.doc).toHaveProperty('price', 200);
           });
         });
-        describe('with missing required fields', () => {
-          test('should return 400 Bad Request', async () => {
+
+        describe('with missing name', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                price: 200,
+                description: 'Test product description 2',
+                color: 'Test Color 2',
+                quantity: 5,
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain('Product name is required');
+          });
+        });
+
+        describe('with missing quantiy', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                name: 'Test Product 2',
+                price: 200,
+                description: 'Test product description 2',
+                color: 'Test Color 2',
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain(
+              'Product quantity is required',
+            );
+          });
+        });
+
+        describe('with missing price', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                name: 'Test Product 2',
+                description: 'Test product description 2',
+                color: 'Test Color 2',
+                quantity: 5,
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain(
+              'Product price is required',
+            );
+          });
+        });
+
+        describe('with missing description', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                name: 'Test Product 2',
+                price: 200,
+                color: 'Test Color 2',
+                quantity: 5,
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain(
+              'Product description is required',
+            );
+          });
+        });
+
+        describe('with missing category', () => {
+          test.only('should return 400 Bad Request', async () => {
             const response = await supertest(app)
               .post('/api/v1/products')
               .set('Authorization', `Bearer ${adminToken}`)
@@ -135,10 +203,51 @@ describe('Testing Products routes ', () => {
                 description: 'Test product description 2',
                 color: 'Test Color 2',
                 quantity: 5,
+                imageCover: 'Test Image Cover',
               });
             expect(response.status).toEqual(400);
-            expect(response.body.message).toBe(
-              'Please provide all required fields',
+            expect(response.body.message).toContain(
+              'Product must belong to a category',
+            );
+          });
+        });
+
+        describe('with invalid category', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                name: 'Test Product 2',
+                price: 200,
+                description: 'Test product description 2',
+                category: 'invalidCategoryId',
+                color: 'Test Color 2',
+                quantity: 5,
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain('Invalid ID format');
+          });
+        });
+
+        describe('with non exsiting category', () => {
+          test.only('should return 400 Bad Request', async () => {
+            const response = await supertest(app)
+              .post('/api/v1/products')
+              .set('Authorization', `Bearer ${adminToken}`)
+              .send({
+                name: 'Test Product 2',
+                price: 200,
+                description: 'Test product description 2',
+                category: '646f3b0c4d5e8a3d4c8b4567',
+                color: 'Test Color 2',
+                quantity: 5,
+                imageCover: 'Test Image Cover',
+              });
+            expect(response.status).toEqual(400);
+            expect(response.body.message).toContain(
+              'No category for this id: 646f3b0c4d5e8a3d4c8b4567',
             );
           });
         });
@@ -148,35 +257,38 @@ describe('Testing Products routes ', () => {
 
   describe('/api/v1/products/:id', () => {
     describe('GET /api/v1/products/:id if found', () => {
-      test('should return a single product', async () => {
-        const response = await supertest(app).get(
-          `/api/v1/products/${productId}`,
-        );
-        expect(response.status).toEqual(200);
-        expect(response.body.data.doc).toHaveProperty('name', 'Test Product');
+      describe('with valid id', () => {
+        test.only('should return a single product', async () => {
+          const newProduct = await createProduct(categoryId);
+          const response = await supertest(app).get(
+            `/api/v1/products/${newProduct._id}`,
+          );
+          console.log(response.body);
+          const products = await supertest(app).get('/api/v1/products');
+          console.log(products.body);
+          expect(response.status).toEqual(200);
+          expect(response.body.data.doc).toHaveProperty('name', 'Test Product');
+        });
       });
-    });
-
-    describe('GET /api/v1/products/:id', () => {
-      test('should return 404 if product not found', async () => {
-        const response = await supertest(app).get(
-          '/api/v1/products/66cc5aa7be03da97c6b07583',
-        );
-        expect(response.statusCode).toEqual(404);
-        expect(response.body.message).toBe(
-          'No Document with this ID 66cc5aa7be03da97c6b07583',
-        );
+      describe('with invalid id', () => {
+        test.only('should return 400 Bad Request', async () => {
+          const response = await supertest(app).get(
+            '/api/v1/products/invalidId',
+          );
+          expect(response.status).toEqual(400);
+          expect(response.body.message).toMatch('Invalid ID format');
+        });
       });
-    });
-
-    describe('GET /api/v1/products with InvalidId', () => {
-      test('Should return 400 Invalid Id', async () => {
-        const response = await supertest(app).get('/api/v1/products/invalidId');
-        expect(response.status).toEqual(400);
-        expect(response.body.message).toMatch('Invalid ID');
-        expect(response.body.message).toEqual(
-          expect.stringContaining('Invalid ID'),
-        );
+      describe('with non-existing id', () => {
+        test.only('should return 404 Not Found', async () => {
+          const response = await supertest(app).get(
+            '/api/v1/products/646f3b0c4d5e8a3d4c8b4567',
+          );
+          expect(response.status).toEqual(404);
+          expect(response.body.message).toBe(
+            'No Document with this ID 646f3b0c4d5e8a3d4c8b4567',
+          );
+        });
       });
     });
 

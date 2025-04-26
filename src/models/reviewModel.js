@@ -75,7 +75,7 @@ reviewSchema.post('findOneAndDelete', async (doc) => {
 });
 
 // to prevent the user create more than one review on a product
-// reviewSchema.index({ product: 1, user: 1 }, { unique: true });
+reviewSchema.index({ product: 1, user: 1 }, { unique: true });
 
 const Review = mongoose.model('Review', reviewSchema);
 module.exports = Review;

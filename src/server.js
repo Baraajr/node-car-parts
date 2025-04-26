@@ -2,7 +2,7 @@ const connectDb = require('./config/db');
 
 process.on('uncaughtException', (err) => {
   console.log('uncaught exception, shutting down ....');
-  console.log(err.message);
+  console.log(err);
 }); // this handler should be in the top to catch exceptions;
 
 const app = require('./app');

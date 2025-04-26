@@ -42,7 +42,9 @@ exports.resizeProductImages = catchAsync(async (req, res, next) => {
 });
 
 exports.setBodySlug = (req, res, next) => {
-  req.body.slug = slugify(req.body.name);
+  if (req.body.name) {
+    req.body.slug = slugify(req.body.name);
+  }
   next();
 };
 
