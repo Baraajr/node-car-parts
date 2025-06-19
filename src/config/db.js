@@ -24,6 +24,10 @@ const connectDb = () =>
       console.log(
         `database connected successfully on host: ${conn.connection.host}`,
       ),
-    );
+    )
+    .catch((err) => {
+      console.error('Database connection error:', err);
+      process.exit(1); // Exit the process with failure
+    });
 
 module.exports = connectDb;
